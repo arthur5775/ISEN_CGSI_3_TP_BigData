@@ -87,4 +87,103 @@ t = (mc[2,1]+mc[1,2])/sum(mc)
 t
 
 #Exercice 2.
+#Dans cet exercice, nous considérons les statistiques de crimes commis aux États-Unis en 1977. 
+#Ce jeu de données contient les nombres de crimes pour 100 000 habitants pour p = 7 types de 
+#crimes dans les n = 50 états. Pour récupérer ces données, il faut charger dans R le fichier 
+#crimes.txt. Explorer rapidement ces données et calculer l’ACP.
+#q1: A l’aide de l’éboulis des valeurs propres, quel nombre d de variables principales utiliseriez-vous ?
+#q2: A quelle part d’inertie expliquée cela correspond-il ?
+#q3: Calculer la contribution des variables initiales à l’inertie des variables principales ?
+#q4: Discuter des résultats obtenus par rapport à votre choix de d
+#q5: Représenter les variables sur le cercle des corrélations
+#q6: A l’aide de ce graphique, comment allez-vous interpréter les axes dans le plan principal ?
+#q7: Représenter les individus dans le plan principal avec la fonction plot.
+#Cette représentation est-elle suffisante pour résumer correctement l’information des données ?
+#q8: Pour d > 2, représenter les données dans les plans engendrés par toutes les paires d’axes principaux parmi les d premiers.
+#q9: Calculer la contribution de chaque état à l’inertie des axes.
+#q10: Repérer quelques états dont certaines contributions sont importantes.
+#q11: Pouvez-vous donner une interprétation géographique aux axes de l’ACP?
+
 #Exercice 3.
+
+#q1: Générer 50 données issues de 3 groupes de centres (1 ;2), (6 ;6) et (6 ;-2) avec 
+# probabilité 0.2, 0.3 et 0.5 issues d’une loi gaussienne. (voir exemple ci-dessus)
+
+library(MASS)  # Charger le package contenant mvrnorm()
+set.seed(1)  # Pour la reproductibilité
+# Définition des centres et proportions
+centers <- matrix(c(1, 2, 6, 6, 6, -2), ncol=2, byrow=TRUE)
+probabilities <- c(0.2, 0.3, 0.5)
+n <- 50  # Nombre total de points
+# Attribution des classes selon les probabilités
+groupes <- sample(1:3, size=n, replace=TRUE, prob=probabilities)
+# Génération des données avec bruit gaussien
+data <- matrix(NA, nrow=n, ncol=2)
+for (i in 1:3) {
+  indices <- which(groupes == i)
+  data[indices, ] <- mvrnorm(n=length(indices), mu=centers[i, ], Sigma=diag(2))}
+# Attribution des couleurs et formes pour l'affichage
+colors <- c("red", "blue", "green")
+pch_symbols <- c(4, 5, 6)  # Différents symboles pour chaque groupe
+# Tracé des points
+plot(data, col=colors[groupes], pch=pch_symbols[groupes], xlim=c(-1, 10), ylim=c(-4, 8))
+
+#q2: Faire une analyse discriminante sur ces données en séparant le plan en trois régions (comme sur le graphique)
+
+set.seed(1)
+# Définition des centres et proportions
+centers <- matrix(c(1, 2, 6, 6, 6, -2), ncol=2, byrow=TRUE)
+probabilities <- c(0.2, 0.3, 0.5)
+n <- 50  # Nombre total de points
+# Attribution des classes selon les probabilités
+groupes <- sample(1:3, size=n, replace=TRUE, prob=probabilities)
+# Génération des données avec bruit gaussien
+data <- matrix(NA, nrow=n, ncol=2)
+for (i in 1:3) {
+  indices <- which(groupes == i)
+  if (length(indices) > 0) {
+    data[indices, ] <- mvrnorm(n=length(indices), mu=centers[i, ], Sigma=diag(2))
+  }
+}
+# Conversion en data frame
+df <- data.frame(x = data[,1], y = data[,2], classe = as.factor(groupes))
+# Analyse discriminante linéaire (LDA)
+lda_model <- lda(classe ~ x + y, data=df)
+# Création d'une grille de points pour la visualisation
+x_min <- min(df$x) - 1
+x_max <- max(df$x) + 1
+y_min <- min(df$y) - 1
+y_max <- max(df$y) + 1
+grid_x <- seq(x_min, x_max, length.out = 100)
+grid_y <- seq(y_min, y_max, length.out = 100)
+grid <- expand.grid(x = grid_x, y = grid_y)
+# Prédiction des classes pour chaque point de la grille
+grid$classe <- predict(lda_model, newdata = grid)$class
+# Affichage du résultat
+plot(df$x, df$y, col=c("red", "blue", "green")[df$classe], pch=c(4, 5, 6)[df$classe],
+     xlim=c(x_min, x_max), ylim=c(y_min, y_max), xlab="X", ylab="Y")
+contour(grid_x, grid_y, matrix(as.numeric(grid$classe), length(grid_x), length(grid_y)), 
+        add=TRUE, drawlabels=FALSE, col="black", lwd=1)
+
+#q3: Quel est le taux d’erreur de classification avec cette méthode.
+
+# Prédiction des classes sur les données d'origine
+predictions <- predict(lda_model, newdata = df)$class
+# Calcul du taux d'erreur
+taux_erreur <- mean(predictions != df$classe)
+print(paste("Taux d'erreur de classification :", round(taux_erreur * 100, 2), "%"))
+
+#q4: Proposer une autre méthode et donner son taux d’erreur.
+
+#Une alternative à l'analyse discriminante linéaire (LDA) est l'analyse discriminante 
+#quadratique (QDA), qui permet de mieux gérer des distributions non linéaires des classes. 
+#Contrairement à LDA, QDA n'impose pas d'hypothèse de variance-covariance commune entre les 
+#classes, ce qui le rend plus flexible pour des données dont les formes ne sont pas séparables linéairement.
+
+# Appliquer l'Analyse discriminante quadratique (QDA)
+qda_model <- qda(classe ~ x + y, data=df)
+# Prédiction des classes sur les données d'origine
+qda_predictions <- predict(qda_model, newdata=df)$class
+# Calcul du taux d'erreur
+qda_taux_erreur <- mean(qda_predictions != df$classe)
+print(paste("Taux d'erreur de classification (QDA) :", round(qda_taux_erreur * 100, 2), "%"))
